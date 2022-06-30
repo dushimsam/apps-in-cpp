@@ -13,8 +13,9 @@ File StudentsDataFile;
  *  NEW FUNCTIONS
  *  1. stoi : converts from string to int.
  *  2. istringtream : splits sentence into sepeparate words.
- *  3. Possible erros:
+ *  3. Common bugs:
  *   i. Core dumped : consider not reading the empty line. eg: if(ln != "")
+ *   ii. Make sure you remember to close the file after opening it.
  ***/
 class Student
 {
@@ -46,12 +47,13 @@ public:
     void enterSdtDetails()
     {
 
-        while (id <= 0)
-        {
-            cout << "Enter the student's ID: ";
-            cin >> id;
-            cout << " SORRY STUDENT ID SHOULD BE GREATER THAN ZERO\n";
-        }
+        int counter = 0;
+
+    fillId:
+        cout << "Enter the student's ID: ";
+        cin >> id;
+        if (id <= 0)
+            goto fillId;
 
         cout << "Enter the student's Names: ";
         cin >> names;
@@ -71,6 +73,10 @@ public:
     }
 };
 
+/*** UTIL FUNCTIONS ****/
+/******************************/
+
+/** function to extract words from the line. */
 vs findWrdsInLn(string sentence)
 {
     istringstream iss(sentence);
@@ -84,6 +90,7 @@ vs findWrdsInLn(string sentence)
     return words;
 }
 
+/** function to open file in different formats*/
 bool openFile(string mode)
 {
     if (mode == "a")
@@ -102,22 +109,13 @@ bool openFile(string mode)
     return StudentsDataFile.is_open();
 }
 
+/** File to close the file */
 void handleCloseFile()
 {
     StudentsDataFile.close();
 }
 
-bool handleAddStudent(Student student)
-{
-    if (openFile("a"))
-    {
-        StudentsDataFile << student.writeInFile();
-        handleCloseFile();
-        return true;
-    }
-    return false;
-}
-
+/** function to copy contents from the temp file into the main file */
 void copyFromTemp()
 {
     File tmpF;
@@ -137,6 +135,20 @@ void copyFromTemp()
     }
 
     remove("temp.txt");
+}
+
+/*** OPERATION HANDLING  FUNCTIONS ****/
+/******************************/
+
+bool handleAddStudent(Student student)
+{
+    if (openFile("a"))
+    {
+        StudentsDataFile << student.writeInFile();
+        handleCloseFile();
+        return true;
+    }
+    return false;
 }
 
 bool handleUpdateStudent(Student student, int ID)
@@ -171,7 +183,35 @@ bool handleUpdateStudent(Student student, int ID)
 
     return false;
 }
-void readAllStudents()
+
+Student handleFindStudent(int id)
+{
+    Student std;
+    if (openFile("r"))
+    {
+        string ln;
+        while (getline(StudentsDataFile, ln))
+        {
+            if (ln != "")
+            {
+                vs words = findWrdsInLn(ln);
+                if (words[0] == to_string(id))
+                {
+                    std.id = stoi(words[0]);
+                    std.names = words[1];
+                    std.age = stoi(words[2]);
+                    handleCloseFile();
+                    return std;
+                }
+            }
+        }
+        handleCloseFile();
+    }
+
+    return std;
+}
+
+void handleReadAllStudents()
 {
     if (openFile("r"))
     {
@@ -192,57 +232,6 @@ void readAllStudents()
         handleCloseFile();
     }
 }
-
-bool addStudent()
-{
-    Student std;
-    std.enterSdtDetails();
-    return handleAddStudent(std);
-}
-
-Student handleFindStudent(int id)
-{
-    Student std;
-    if (openFile("r"))
-    {
-        string ln;
-        while (getline(StudentsDataFile, ln))
-        {
-            if (ln != "")
-            {
-                vs words = findWrdsInLn(ln);
-                if (words[0] == to_string(id))
-                {
-                    std.id = stoi(words[0]);
-                    std.names = words[1];
-                    std.age = stoi(words[2]);
-
-                    return std;
-                }
-            }
-        }
-    }
-
-    return std;
-}
-
-void findStudent()
-{
-    int id;
-    cout << "Enter the stuedent's ID: ";
-    cin >> id;
-    Student std = handleFindStudent(id);
-    std.printStdDetails();
-}
-
-bool updateStudent()
-{
-    Student std;
-    std.enterSdtDetails();
-
-    return handleUpdateStudent(std, std.id);
-}
-
 bool handleDeleteStudent(int id)
 {
     File tempF;
@@ -267,6 +256,41 @@ bool handleDeleteStudent(int id)
     return false;
 }
 
+
+/*** RECEIVING THE PREREQUISITES NEEDED BY HANDLING FUNCTIONS ****/
+/******************************/
+
+
+void readAllStudents()
+{
+    handleReadAllStudents();
+}
+
+bool addStudent()
+{
+    Student std;
+    std.enterSdtDetails();
+    return handleAddStudent(std);
+}
+
+void findStudent()
+{
+    int id;
+    cout << "Enter the stuedent's ID: ";
+    cin >> id;
+    Student std = handleFindStudent(id);
+    std.printStdDetails();
+}
+
+bool updateStudent()
+{
+    Student std;
+    std.enterSdtDetails();
+
+    return handleUpdateStudent(std, std.id);
+}
+
+
 bool deleteStudent()
 {
     int id;
@@ -274,6 +298,7 @@ bool deleteStudent()
     cin >> id;
     return handleDeleteStudent(id);
 }
+
 
 void getOptions()
 {
